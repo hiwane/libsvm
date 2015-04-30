@@ -44,10 +44,10 @@ void exit_input_error(int line_num)
 
 void predict(FILE *input, FILE *output)
 {
-	int correct = 0;
 	int total = 0;
 	double error = 0;
 	double sump = 0, sumt = 0, sumpp = 0, sumtt = 0, sumpt = 0;
+	int tp = 0, fp = 0, tn = 0, fn = 0;
 
 	int svm_type=svm_get_svm_type(model);
 	int nr_class=svm_get_nr_class(model);
@@ -131,8 +131,19 @@ void predict(FILE *input, FILE *output)
 			fprintf(output,"%g\n",predict_label);
 		}
 
-		if(predict_label == target_label)
-			++correct;
+		if (predict_label > 0) {
+			if (predict_label == target_label) {
+				tp++;
+			} else {
+				fp++;
+			}
+		} else {
+			if (predict_label == target_label) {
+				tn++;
+			} else {
+				fn++;
+			}
+		}
 		error += (predict_label-target_label)*(predict_label-target_label);
 		sump += predict_label;
 		sumt += target_label;
@@ -149,9 +160,14 @@ void predict(FILE *input, FILE *output)
 			((total*sumpp-sump*sump)*(total*sumtt-sumt*sumt))
 			);
 	}
-	else
-		info("Accuracy = %g%% (%d/%d) (classification)\n",
-			(double)correct/total*100,correct,total);
+	else {
+		info("  Accuracy  = %g%% (%d/%d) (classification)\n",
+			(double)(tp+tn)/total*100., tp+tn, total);
+		info("+ precision = %g%% (%d/%d)\n", (double)tp/(tp+fp)*100., tp, tp+fp);
+		info("+ recall    = %g%% (%d/%d)\n", (double)tp/(tp+fn)*100., tp, tp+fn);
+		info("- precision = %g%% (%d/%d)\n", (double)tn/(tn+fn)*100., tn, tn+fn);
+		info("- recall    = %g%% (%d/%d)\n", (double)tn/(tn+fp)*100., tn, tn+fp);
+	}
 	if(predict_probability)
 		free(prob_estimates);
 }
